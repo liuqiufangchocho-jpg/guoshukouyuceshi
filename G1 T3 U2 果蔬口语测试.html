@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>G1 T3 U1 Assessment</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { 
+            --ghibli-sky: #A7D8DE; 
+            --ghibli-grass: #7FB069; 
+            --ghibli-paper: #FDF5E6;
+            --ghibli-accent: #D2691E;
+        }
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: var(--ghibli-paper); 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            touch-action: manipulation; 
+        }
+        
+        #initial-screen { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            background: linear-gradient(180deg, #A7D8DE 0%, #FDF5E6 100%); 
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .header-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            padding: clamp(30px, 8vw, 60px);
+            box-shadow: 0 20px 50px rgba(31, 38, 135, 0.1);
+            width: 100%;
+            max-width: 600px;
+            transition: all 0.3s ease;
+        }
+
+        .main-layout { 
+            display: grid; 
+            grid-template-columns: 1.2fr 1fr; 
+            height: calc(100vh - 60px); 
+        }
+        
+        @media (max-width: 900px) { 
+            .main-layout { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } 
+        }
+
+        .card-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 20vw, 200px), 1fr)); 
+            gap: clamp(10px, 2vw, 25px); 
+            padding: clamp(15px, 3vw, 30px); 
+            align-content: start;
+        }
+
+        .word-card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 24px; 
+            border: 4px solid #F0E68C; 
+            cursor: pointer; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            position: relative;
+            min-height: 150px;
+        }
+
+        .word-card.done { border-color: #7FB069; background-color: #F7FFF2; }
+        .word-card.done::after {
+            content: "⭐";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.5rem;
+        }
+
+        .word-card.active { border-color: #D2691E; transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+
+        .mic-btn { 
+            width: clamp(80px, 15vw, 120px); 
+            height: clamp(80px, 15vw, 120px); 
+            background: #E57373; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin: 20px auto; 
+            color: white; 
+            cursor: pointer;
+        }
+        
+        .hidden { display: none !important; }
+        
+        #auth-overlay { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8); 
+            display: none; flex-direction: column; align-items: center; 
+            justify-content: center; color: white; z-index: 5000; padding: 20px;
+        }
+
+        .scale-in {
+            animation: scaleIn 0.3s ease-out forwards;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        #display-hanzi {
+            letter-spacing: 0.15em; 
+            margin-right: -0.15em; 
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 录音授权遮罩 -->
+    <div id="auth-overlay">
+        <div class="bg-white text-black p-8 rounded-3xl max-w-xs shadow-2xl text-center">
+            <div class="text-6xl mb-4">🎤</div>
+            <h3 class="text-xl font-bold mb-2">Microphone Access</h3>
+            <p class="text-gray-600 mb-6 text-sm">Please allow microphone access to record your voice.</p>
+            <button id="confirm-auth-btn" class="w-full bg-green-600 text-white py-4 rounded-2xl font-bold text-lg active:scale-95 transition-transform">Authorize & Start</button>
+        </div>
+    </div>
+
+    <!-- 初始界面 -->
+    <div id="initial-screen">
+        <div class="header-section">
+            <h1 class="text-3xl md:text-5xl font-black text-[#2D5A27] tracking-tight">G1 T3 U1 Fruits & Veggies</h1>
+            <h2 class="text-2xl md:text-4xl font-bold text-[#D2691E] mt-3">Chinese Oral Assessment</h2>
+        </div>
+
+        <div class="glass-panel text-center">
+            <div class="flex flex-col items-center gap-10">
+                <button id="start-btn" class="text-[clamp(100px,15vw,140px)] leading-none hover:scale-110 transition-transform active:scale-90" style="background:none; border:none; cursor:pointer;">
+                    👉
+                </button>
+                <div class="text-[#5D4037] font-bold text-lg md:text-xl text-center bg-white/50 px-10 py-6 rounded-2xl border border-[#C19A6B]/30 w-full">
+                    “Click the button to start the assessment.”
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 游戏主界面 -->
+    <div id="game-ui" class="hidden">
+        <header class="h-[60px] bg-white border-b flex items-center justify-between px-4 md:px-8 shadow-sm">
+            <div class="flex flex-col">
+                <span class="font-bold text-[#2D5A27] text-sm md:text-lg leading-tight">G1 T3 U1 Fruits & Veggies</span>
+                <span class="text-[10px] md:text-xs text-[#D2691E] font-bold uppercase tracking-wider">Oral Assessment</span>
+            </div>
+            <div class="bg-[#F7FFF2] border border-[#7FB069] text-[#2D5A27] px-3 md:px-5 py-1 rounded-full font-bold text-sm">
+                Progress: <span id="score-val">0</span>/10
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <div class="overflow-y-auto bg-[#FDF5E6]/30 border-r">
+                <div id="card-grid" class="card-grid"></div>
+            </div>
+
+            <div class="bg-[#2C3E50] text-white flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+                <div id="empty-hint" class="text-slate-400">
+                    <div class="text-7xl mb-4">🍎</div>
+                    <p class="text-xl font-medium">Click on a card to start!</p>
+                </div>
+                
+                <div id="active-zone" class="hidden w-full max-w-2xl px-4">
+                    <div class="flex items-center justify-center gap-12 mb-10">
+                        <div class="flex flex-col items-center">
+                            <div id="display-pinyin" class="text-[#81C784] text-xl md:text-2xl font-mono italic mb-2"></div>
+                            <div id="display-hanzi" class="text-6xl md:text-8xl font-black leading-tight"></div>
+                        </div>
+                        <div id="display-emoji" class="text-[clamp(70px,12vh,110px)]"></div>
+                    </div>
+                    
+                    <div id="mic-trigger" class="mic-btn shadow-lg active:scale-95 transition-all">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                    </div>
+                    
+                    <div id="msg-feedback" class="text-xl md:text-2xl font-bold h-12 flex items-center justify-center mb-4 text-[#81C784]"></div>
+                    
+                    <button id="play-back-btn" class="hidden bg-[#34495E] hover:bg-[#4E6E8E] text-white px-8 py-4 rounded-2xl flex items-center gap-3 mx-auto transition-all shadow-xl active:scale-95">
+                        <span class="text-2xl text-[#81C784]">▶</span>
+                        <span class="text-lg font-bold">Play Back</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结算报告单 -->
+    <div id="cert-modal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[3000] p-4">
+        <div class="bg-white rounded-[40px] p-4 md:p-8 w-full max-w-md text-center shadow-2xl scale-in">
+            <div id="cert-capture" class="bg-white p-6 border-[10px] border-[#F0E68C] rounded-[32px] relative overflow-hidden">
+                <div class="text-6xl mb-4">🏅</div>
+                <h2 class="text-2xl font-black text-[#2D5A27] mb-1">Achievement Award</h2>
+                <h3 class="text-lg font-bold text-[#D2691E] mb-6">G1 T3 U1 Assessment</h3>
+                
+                <div class="text-left space-y-5 mb-8 border-y-2 border-dashed border-[#F0E68C] py-8">
+                    <div class="flex justify-between items-center pt-2">
+                        <span class="text-gray-400 text-xs font-bold uppercase tracking-widest">Final Score</span>
+                        <span id="res-score" class="font-black text-[#7FB069] text-5xl"></span>
+                    </div>
+                </div>
+                <p class="text-gray-400 text-[10px] font-mono tracking-widest uppercase" id="res-date"></p>
+            </div>
+            
+            <div class="flex flex-col gap-3 mt-8">
+                <button id="btn-save" class="w-full bg-[#7FB069] text-white py-4 rounded-2xl font-black text-xl shadow-xl hover:brightness-105 active:scale-95 transition-all">
+                    SAVE REPORT IMAGE
+                </button>
+                <button onclick="location.reload()" class="w-full text-gray-400 font-bold py-2">
+                    Back to Start
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 蔬菜水果词库
+        const wordList = [
+            { w: '苹果', e: '🍎', p: 'píng guǒ' }, { w: '香蕉', e: '🍌', p: 'xiāng jiāo' },
+            { w: '草莓', e: '🍓', p: 'cǎo méi' }, { w: '西瓜', e: '🍉', p: 'xī guā' },
+            { w: '土豆', e: '🥔', p: 'tǔ dòu' }, { w: '茄子', e: '🍆', p: 'qié zi' },
+            { w: '黄瓜', e: '🥒', p: 'huáng guā' }, { w: '洋葱', e: '🧅', p: 'yáng cōng' },
+            { w: '胡萝卜', e: '🥕', p: 'hú luó bo' }, { w: '西红柿', e: '🍅', p: 'xī hóng shì' }
+        ];
+
+        let state = { activeWord: null, attempted: new Set(), isRecording: false };
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let playbackUrl = null;
+
+        const startBtn = document.getElementById('start-btn');
+        const authOverlay = document.getElementById('auth-overlay');
+        const confirmAuthBtn = document.getElementById('confirm-auth-btn');
+
+        // 点击开始
+        startBtn.onclick = () => {
+            authOverlay.style.display = 'flex';
+        };
+
+        // 录音授权并进入游戏
+        confirmAuthBtn.onclick = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    if (playbackUrl) URL.revokeObjectURL(playbackUrl);
+                    playbackUrl = URL.createObjectURL(audioBlob);
+                    document.getElementById('play-back-btn').classList.remove('hidden');
+                    markDone();
+                };
+
+                authOverlay.style.display = 'none';
+                document.getElementById('initial-screen').classList.add('hidden');
+                document.getElementById('game-ui').classList.remove('hidden');
+                renderCards();
+            } catch (err) { alert("Please allow microphone access to proceed."); }
+        };
+
+        // 渲染测评卡片
+        function renderCards() {
+            const grid = document.getElementById('card-grid');
+            grid.innerHTML = '';
+            wordList.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'word-card' + (state.attempted.has(item.w) ? ' done' : '');
+                div.id = `card-${item.w}`;
+                div.innerHTML = `
+                    <span class="text-sm text-[#7FB069] font-bold mb-2">${item.p}</span>
+                    <span class="text-3xl my-1 font-bold text-[#2D5A27]">${item.w}</span>
+                    <span class="text-3xl mt-2">${item.e}</span>
+                `;
+                div.onclick = () => selectWord(item);
+                grid.appendChild(div);
+            });
+        }
+
+        // 选择单词
+        function selectWord(item) {
+            state.activeWord = item;
+            document.getElementById('play-back-btn').classList.add('hidden');
+            document.querySelectorAll('.word-card').forEach(c => c.classList.remove('active'));
+            document.getElementById(`card-${item.w}`).classList.add('active');
+            document.getElementById('empty-hint').classList.add('hidden');
+            document.getElementById('active-zone').classList.remove('hidden');
+            document.getElementById('display-emoji').textContent = item.e;
+            document.getElementById('display-hanzi').textContent = item.w;
+            document.getElementById('display-pinyin').textContent = item.p;
+            document.getElementById('msg-feedback').textContent = "";
+            
+            const utter = new SpeechSynthesisUtterance(item.w); 
+            utter.lang = 'zh-CN'; utter.rate = 0.6; 
+            window.speechSynthesis.speak(utter);
+        }
+
+        // 录音逻辑
+        const micBtn = document.getElementById('mic-trigger');
+        micBtn.onclick = () => {
+            if (!state.activeWord) return;
+            if (!state.isRecording) {
+                state.isRecording = true;
+                audioChunks = [];
+                mediaRecorder.start();
+                micBtn.style.background = '#81C784';
+                document.getElementById('msg-feedback').textContent = "Recording... 🎤";
+            } else {
+                state.isRecording = false;
+                mediaRecorder.stop();
+                micBtn.style.background = '#E57373';
+            }
+        };
+
+        // 回放录音
+        document.getElementById('play-back-btn').onclick = () => {
+            if (playbackUrl) new Audio(playbackUrl).play();
+        };
+
+        // 标记完成并检查总进度
+        function markDone() {
+            if (!state.activeWord) return;
+            const target = state.activeWord.w;
+            
+            if (!state.attempted.has(target)) {
+                state.attempted.add(target);
+                document.getElementById(`card-${target}`).classList.add('done');
+                const score = state.attempted.size;
+                document.getElementById('score-val').textContent = score;
+                document.getElementById('msg-feedback').textContent = "Excellent! ✨";
+                
+                if (score >= wordList.length) {
+                    setTimeout(showCertificate, 1200);
+                }
+            }
+        }
+
+        // 弹出报告单
+        function showCertificate() {
+            document.getElementById('res-score').textContent = `${state.attempted.size} / ${wordList.length}`;
+            
+            try {
+                const options = { day: '2-digit', month: 'long', year: 'numeric' };
+                document.getElementById('res-date').textContent = new Date().toLocaleDateString('en-GB', options);
+            } catch(e) {
+                document.getElementById('res-date').textContent = new Date().toDateString();
+            }
+            
+            const modal = document.getElementById('cert-modal');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+        }
+
+        // 保存截图
+        document.getElementById('btn-save').onclick = () => {
+            const btn = document.getElementById('btn-save');
+            btn.textContent = "GENERATING...";
+            html2canvas(document.getElementById('cert-capture'), { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Oral_Assessment_Report.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                btn.textContent = "SAVE REPORT IMAGE";
+            });
+        };
+    </script>
+</body>
+</html>
